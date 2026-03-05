@@ -1,13 +1,18 @@
 <template>
-  <div>
+  <Workspace />
 
-  </div>
 </template>
 
-<script setup()>
-
+<script setup>
+import Workspace from './views/Workspace.vue'
 </script>
 
-<style scoped>
+
+<style>
+/* 全局 */
+body {
+  margin: 0;
+  padding: 0;
+}
 
 </style>
