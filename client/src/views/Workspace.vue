@@ -14,7 +14,7 @@
 
       <!-- 底部输入框 -->
       <div class="input-area">
-        <textarea v-model="inputText" placeholder="请输入消息..." @input="handleInputDebounce" rows="3"></textarea>
+        <textarea v-model="inputText" placeholder="请输入消息..." @input="handleInput" rows="3"></textarea>
         <!-- rows="3" 指定文本框的可见行数。文本框默认显示 3 行的高度，用户输入更多行时可以通过滚动查看。-->
         <button @click="sendMessage">发送</button>
       </div>
@@ -54,22 +54,42 @@ messageList.value = [
   { id:1, role:'agent', content:'有的，请问您需要什么尺寸？'}
 ]
 
-const sendMessage = ()=> {
-  console.log('发送消息',inputText.value);
-  inputText.value = '';
-}
+
 
 //防抖处理输入
-const handleInputDebounce = (() => {
+//防抖保存草稿到LocalStorage
+const saveDraft = (() => {
   let timer = null;
-  return ()=>{
+  return (text) => {
     if(timer) clearTimeout(timer);
     timer = setTimeout(()=>{
-      console.log('防抖保存草稿：',inputText.value);
-      //这里可以保存到 localStorage，后面实现
+      console.log('保存草稿',text);
+      localStorage.setItem('chat_draft',text);
     },1000)
   }
-})(); //立即执行，就能执行return的函数了
+})();//立即执行，就能执行return的函数了
+
+const handleInput = () => {
+  saveDraft(inputText.value);
+}
+
+const sendMessage = ()=> {
+  if(!inputText.value.trim()) return; //trim去掉空格。空格不发送
+  messageList.value.push({
+    id:Date.now(),
+    role:'agent',
+    content:inputText.value
+  })
+  inputText.value = '';
+  //清除草稿
+  localStorage.removeItem('chat_draft');
+}
+
+//页面加载时读取草稿。还没按send还没触发send前，input的时候，就已经从localStorage中得到draft了
+//draft只在页面刚刷新时更新。读取之前的草稿。
+//“草稿箱”功能，主要目的是在页面刷新、关闭或意外离开后，用户重新打开时能恢复之前未发送的输入内容
+const draft = localStorage.getItem('chat_draft');
+if(draft) inputText.value = draft;
 
 
 </script>
