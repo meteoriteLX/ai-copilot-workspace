@@ -41,14 +41,12 @@
 
 <script setup>
 import { ref } from 'vue';
+import { useAIChat } from '../hooks/useAIChat'
 
 const messageList = ref([])
 const inputText = ref('');
-const aiSuggestion = ref('');
-const isReceiving = ref(false);
 
-//新增状态：用于中断请求的AbortController
-const abortController = ref(null);
+const { aiSuggestion,isReceiving,fetchAI,stopAI } = useAIChat();
 
 
 messageList.value = [
@@ -73,79 +71,6 @@ const handleInputDebounce = (() => {
   }
 })(); //立即执行，就能执行return的函数了
 
-
-const fetchAI = async () => {
-  //如果已经有请求在运行，先取消之前的
-  if (abortController.value) {
-    abortController.value.abort()
-  }
-  abortController.value = new AbortController()
-  
-  isReceiving.value = true;
-  aiSuggestion.value = '';
-  let buffer = '' //暂存接收到的字符
-
-
-  try {
-    const response = await fetch('http://localhost:3000/api/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ prompt: inputText.value || '默认问题' }),
-      signal: abortController.value.signal,
-    })
-
-    // 读取流式响应
-    const reader = response.body.getReader()
-    const decoder = new TextDecoder()
-
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-
-      const chunk = decoder.decode(value)
-      // 解析 SSE 格式：data: {...}\n\n
-      const lines = chunk.split('\n\n')
-      for (const line of lines) {
-        if (line.startsWith('data: ')) {
-          const data = line.slice(6)
-          if (data === '[DONE]') {
-            isReceiving.value = false
-            return
-          }
-          try {
-            const parsed = JSON.parse(data)
-            if (parsed.content) {
-              buffer += parsed.content
-              // 更新视图（未优化，会频繁触发响应式）
-              aiSuggestion.value = buffer
-            }
-          } catch (e) {
-            console.error('解析失败', e)
-          }
-        }
-      }
-    }
-  } catch (error) {
-    if (error.name === 'AbortError') {
-      console.log('请求被用户中断')
-    } else {
-      console.error('请求出错', error)
-    }
-  } finally {
-    isReceiving.value = false
-    abortController.value = null
-  }
-}
-
-
-const stopAI = () => {
-  if (abortController.value) {
-    abortController.value.abort()
-    isReceiving.value = false
-  }
-}
 
 </script>
 
