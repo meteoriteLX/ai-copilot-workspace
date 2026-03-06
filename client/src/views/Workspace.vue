@@ -4,7 +4,7 @@
     <div class="chat-box">
       <!-- 聊天框 -->
       <div class="chat-area">
-        <div class="message-list" ref="messageListRef">
+        <div class="message-list" ref="messageListRef" @scroll="handleScroll">
           <div v-for="msg in messageList" :key="msg.id" :class="['bubble',msg.role]">
             <!-- :class="['bubble', msg.role]数组语法，表示这个 <div> 会同时拥有两个类： -->
             {{ msg.content }}
@@ -40,13 +40,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, nextTick, watch } from 'vue';
 import { useAIChat } from '../hooks/useAIChat'
 
 const messageList = ref([])
 const inputText = ref('');
 
 const { aiSuggestion,isReceiving,fetchAI,stopAI } = useAIChat();
+
+const messageListRef = ref(null);
+const userIsScrolling = ref(false);
 
 
 messageList.value = [
@@ -92,6 +95,38 @@ const draft = localStorage.getItem('chat_draft');
 if(draft) inputText.value = draft;
 
 
+//自动滚动到底部
+
+//滚动到底部
+const scrollToBottom = () => {
+  if(messageListRef.value) {
+    messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
+    //scrollTop：元素当前滚动的距离（顶部被卷去的高度）。
+    //scrollHeight：元素内容的总高度（包括不可见的部分）。
+    //将scrollTop设置为scrollHeight，就等于把滚动条拉到最底部，显示最后的内容。
+  }
+}
+
+//监听滚动事件，判断用户是否手动滚动
+const handleScroll = () => {
+  const el = messageListRef.value;
+  if(!el) return;
+  const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
+  //clientHeight：元素可视区域的高度。
+  //scrollHeight - scrollTop - clientHeight 计算当前底部还有多少未滚动的内容。
+  //如果这个差值小于50像素，就认为用户已经接近底部（atBottom = true）。
+  userIsScrolling.value = !atBottom;
+}
+
+//监听消息列表变化，自动滚动（如果用户不在手动滚动状态）
+watch(messageList, async () => {
+  await nextTick();
+  if(!userIsScrolling.value) scrollToBottom();
+}, { deep: true })
+//watch 监听 messageList：当列表变化（比如用户发送新消息或 AI 回复）时触发。
+//await nextTick()：等待 Vue 完成 DOM 更新。因为新消息添加到数组后，浏览器需要渲染出新元素，此时 scrollHeight 才准确。
+
+
 </script>
 
 
@@ -113,6 +148,7 @@ if(draft) inputText.value = draft;
   flex: 4;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 .message-list{
