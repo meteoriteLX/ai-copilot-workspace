@@ -33,7 +33,13 @@ const visibleItems = ref([]); //当前需要渲染的项数组
 //存储每一项的真实高度和位置信息{index,height,top,bottom}
 const positions = ref([]);
 
-//更新positions数组（初始化或重置）
+//存储可视区域的每一项的DOM元素引用
+const itemRefs = ref([]);
+const setItemRef = (el,index) =>{
+  if(el) itemRefs.value[index] = el;
+}
+
+//更新positions数组（初始化或重置）先假设每个项高度固定：
 const updatePositions = () => {
   positions.value = props.items.map((item,index) => {
     return {
@@ -48,11 +54,45 @@ const updatePositions = () => {
   // ?.bottom：如果数组不为空，就取其bottom值，即最后一项的底部偏移。由于最后一项的底部就是整个列表的底部，所以这个值就是所有项的总高度。
 }
 
-//存储每一项的DOM元素
-const itemRefs = ref([]);
-const setItemRef = (el,index) =>{
-  if(el) itemRefs.value[index] = el;
+//测量真实高度并更新位置
+const recalcPositions = async () => {
+  await nextTick(); //等待DOM更新完成
+
+  const itemsElement = itemRefs.value;
+  if(!itemsElement.length) return;
+
+  //浅拷贝一份positons用于更新
+  let updatedPositions = [...positions.value];
+
+  for(let i = 0 ; i < itemsElement.length ; i++){
+    const el = itemsElement[i];
+    if(!el) continue;
+    const realHeight = el.offsetHeight; //DOM元素的高度（内容高度+padding+border，不含margin）
+    const index = startIndex.value + i; //计算该元素在完整列表（props.items）中的真实索引。可视区起始元素索引+可视区内偏移量。itemsElement为可视区的
+
+    if(updatedPositions[index] && updatedPositions[index].height !== realHeight){
+      const diff = realHeight - updatedPositions[index].height; //原本记录的高度与元素真实高度的差值
+      updatedPositions[index].height = realHeight;
+      //先更新bottom，让bottom与top的相对位置正确
+      updatedPositions[index].bottom = updatedPositions[index].top + realHeight;
+      //然后后续所有项统一添加diff
+      for(let j = index + 1 ; j < updatedPositions.length ; j++){
+        updatedPositions[j].top += diff;
+        updatedPositions[j].bottom += diff;
+      }
+    }
+    
+  }
+  positions.value = updatedPositions;
+  totalHeight.value = positions.value[positions.value.length - 1]?.bottom || 0;
+  //最后一个元素底部距离完整页面顶部的距离
+
+  //重新计算可见范围，以修正偏移
+  calcVisibleRange();
+
 }
+
+
 
 //计算可见范围。根据滚动位置计算出哪些项应该被渲染。
 const calcVisibleRange = () => {
@@ -93,10 +133,47 @@ const onScroll = () => {
   calcVisibleRange();
 }
 
+//监听items数据变化，并重新初始化positons
+watch(() => props.items, async () => {
+  positions.value = props.items.map((item,index) => ({
+    index: index,
+    height: props.itemHeight,
+    top: index * props.itemHeight, 
+    bottom:(index + 1) * props.itemHeight 
+  }))//返回对象时用括号可以省略return
+  totalHeight.value = positions.value[positions.value.length-1]?.bottom || 0;
+
+  await nextTick();
+  recalcPositions();
+},{deep:true, immediate:true}) //深度监听和立即执行
+
 
 </script>
 
 
 <style scoped>
+
+.virtual-list{
+  position: relative;
+  height: 100%;
+  overflow-y: auto;
+}
+
+.phantom {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+  z-index: -1;  
+  /* 避免遮挡实际内容 */
+}
+
+.content {
+  position: absolute;
+  left: 0;
+  top: 0;
+  right: 0;
+}
+
 
 </style>
