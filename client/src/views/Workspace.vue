@@ -4,12 +4,15 @@
     <div class="chat-box">
       <!-- 聊天框 -->
       <div class="chat-area">
-        <div class="message-list" ref="messageListRef" @scroll="handleScroll">
-          <div v-for="msg in messageList" :key="msg.id" :class="['bubble',msg.role]">
-            <!-- :class="['bubble', msg.role]数组语法，表示这个 <div> 会同时拥有两个类： -->
-            {{ msg.content }}
-          </div>
-        </div>
+        <VirtualList ref="messageListRef" :items="messageList" :item-height="70" :buffer="5" class="message-list" @scroll="handleScroll"> 
+          <!-- class="message-list会传给VirtualList的根元素，最外的那个div" -->
+          <template #default="{ item1 }">
+            <!-- #default 是默认插槽的名称，="{ item1 }" 是解构赋值，从插槽参数对象中提取 item1 属性。 -->
+            <div :class="['bubble',item1.role]">
+              {{ item1.content }}
+            </div>
+          </template>
+        </VirtualList>
       </div>
 
       <!-- 底部输入框 -->
@@ -40,23 +43,24 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch } from 'vue';
+import { ref, nextTick, watch, onMounted } from 'vue';
 import { useAIChat } from '../hooks/useAIChat'
+import VirtualList from '../components/VirtualList.vue'
+import { generateMockChatHistory } from '../utils/mockData'
 
 const messageList = ref([])
 const inputText = ref('');
 
+const messageListRef = ref(null);
+
 const { aiSuggestion,isReceiving,fetchAI,stopAI } = useAIChat();
 
-const messageListRef = ref(null);
 const userIsScrolling = ref(false);
 
-
-messageList.value = [
-  { id:1, role:'customer', content:'你好，请问这个商品有货吗？'},
-  { id:1, role:'agent', content:'有的，请问您需要什么尺寸？'}
-]
-
+onMounted(()=>{
+  //message是异步获取的，所以用onMounted保证了组件被挂载到DOM，已经渲染到页面上，再发起请求并处理响应。
+  messageList.value = generateMockChatHistory(10000);
+})
 
 
 //防抖处理输入
@@ -99,8 +103,9 @@ if(draft) inputText.value = draft;
 
 //滚动到底部
 const scrollToBottom = () => {
-  if(messageListRef.value) {
-    messageListRef.value.scrollTop = messageListRef.value.scrollHeight;
+  const el = messageListRef.value?.$el; //$el为根DOM属性
+  if(el) {
+    el.scrollTop = el.scrollHeight;
     //scrollTop：元素当前滚动的距离（顶部被卷去的高度）。
     //scrollHeight：元素内容的总高度（包括不可见的部分）。
     //将scrollTop设置为scrollHeight，就等于把滚动条拉到最底部，显示最后的内容。
@@ -109,7 +114,7 @@ const scrollToBottom = () => {
 
 //监听滚动事件，判断用户是否手动滚动
 const handleScroll = () => {
-  const el = messageListRef.value;
+  const el = messageListRef.value?.$el;
   if(!el) return;
   const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
   //clientHeight：元素可视区域的高度。
@@ -173,6 +178,7 @@ watch(messageList, async () => {
   background-color: #e4e6eb;
   align-self: flex-start;
   /* 沿侧轴/交叉轴起始处对齐。此处因为父级flex-direction: column,所以侧轴为水平轴，为水平左对齐 */
+  /* 如果父级没有flex也可以margin-right: auto 右侧自动填充可用空间，即元素居左 */
 }
 
 .bubble.agent{

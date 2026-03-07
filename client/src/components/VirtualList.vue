@@ -6,7 +6,8 @@
     <div class="content" :style="{ transform: `translateY(${offsetY}px)` }">
       <div v-for="(item,index) in visibleItems" :ref="el => setItemRef(el,index)" :key="item.id" class="list-item">
         <!-- :ref="el => setItemRef(el, index)" el为当前循环项的DOM，将这个DOM和Index传给函数。el是html的真实DOM元素div什么的，拥有各种属性方法。item是数据对象而已如{id: text:} -->
-        <slot></slot>
+        <slot :item1="item" :index1="startIndex + index"></slot>
+        <!-- :item1="item" 表示将当前循环项的数据对象绑定到插槽自定义的item1 属性上。父组件也用item1接收 -->
       </div>
     </div>
 
@@ -15,7 +16,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref,watch,nextTick } from 'vue';
 
 const props = defineProps({
   items: {type: Array, required: true},
@@ -49,7 +50,7 @@ const updatePositions = () => {
       bottom:(index + 1) * props.itemHeight //前项底部距离滚动容器顶部的偏移量
     }
   })
-  totalHeight.value = positions.value[positons.value.length - 1]?.bottom || 0;
+  totalHeight.value = positions.value[positions.value.length - 1]?.bottom || 0;
   // positions.value[positions.value.length - 1]：取最后一个项的位置信息对象。
   // ?.bottom：如果数组不为空，就取其bottom值，即最后一项的底部偏移。由于最后一项的底部就是整个列表的底部，所以这个值就是所有项的总高度。
 }
@@ -128,9 +129,11 @@ const calcVisibleRange = () => {
   offsetY.value = positions.value[startIdx]?.top || 0;
 }
 
+const emit = defineEmits(['scroll']);
 //处理滚动事件
-const onScroll = () => {
+const onScroll = (e) => {
   calcVisibleRange();
+  emit('scroll', e); 
 }
 
 //监听items数据变化，并重新初始化positons
@@ -146,6 +149,7 @@ watch(() => props.items, async () => {
   await nextTick();
   recalcPositions();
 },{deep:true, immediate:true}) //深度监听和立即执行
+
 
 
 </script>
@@ -173,6 +177,12 @@ watch(() => props.items, async () => {
   left: 0;
   top: 0;
   right: 0;
+}
+
+.list-item {
+  display: flex;
+  flex-direction: column; 
+  /* 让子级的bubble可以align-self左右排列 */
 }
 
 
