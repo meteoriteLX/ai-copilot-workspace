@@ -1,45 +1,57 @@
+require('dotenv').config()
 const express = require('express')
+const axios = require('axios')
+const cors = require('cors')
+
 const app = express()
+app.use(cors())
 app.use(express.json())
 
-//跨域解决
-const cors = require('cors')
-app.use(cors()) //允许所有跨域请求
-
-//模拟流式输出接口
-app.post('/api/chat', (req, res) => {
+app.post('/api/chat', async (req, res) => {
   const { prompt } = req.body
-  console.log('收到请求:', prompt)
+  console.log('收到请求，prompt:', prompt)
 
-  //设置 SSE 响应头
+  // 设置 SSE 响应头
   res.setHeader('Content-Type', 'text/event-stream')
   res.setHeader('Cache-Control', 'no-cache')
   res.setHeader('Connection', 'keep-alive')
 
-  //构造一段较长的回复（为了体现流式效果）
-  const mockAnswer = `您好！作为客服，我为您提供以下建议：关于您提到的“${prompt}”问题，我们可以这样处理：首先，请确认您的订单号是否正确；其次，登录官网查看物流状态；如果仍未解决，请提供相关截图，我们会进一步帮助您。感谢您的耐心等待！`
+  try {
+    // 调用 DeepSeek API（流式）
+    const response = await axios({
+      method: 'post',
+      url: 'https://api.deepseek.com/v1/chat/completions',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${process.env.DEEPSEEK_API_KEY}`
+      },
+      data: {
+        model: 'deepseek-chat', // 使用的模型
+        messages: [
+          { role: 'system', content: '你是一个专业的客服助手，请根据用户的问题提供准确、友好的建议。' },
+          { role: 'user', content: prompt }
+        ],
+        stream: true, // 启用流式输出
+      },
+      responseType: 'stream' // 关键：告诉 axios 返回流
+    })
 
-  let index = 0
-  const interval = setInterval(() => {
-    if (index < mockAnswer.length) {
-      //每次发送一个字符
-      const token = mockAnswer.charAt(index)
-      //SSE 数据格式：data: <json>\n\n
-      res.write(`data: ${JSON.stringify({ content: token })}\n\n`)
-      index++
-    } else {
-      //发送结束标记
-      res.write(`data: [DONE]\n\n`)
-      clearInterval(interval)
-      res.end()
-    }
-  }, 30) // 30ms 一个字，可以明显看到流式效果
+    // 将 DeepSeek 返回的流 pipe 到前端的 SSE 响应中
+    // DeepSeek 流式响应的格式是 data: {...}\n\n，和我们之前模拟的格式一致，可以直接透传
+    response.data.pipe(res)
 
-  //监听客户端中断请求
-  req.on('close', () => {
-    clearInterval(interval)
-    console.log('客户端中断了连接')
-  })
+    // 监听前端中断
+    req.on('close', () => {
+      console.log('前端中断了连接')
+      response.data.destroy() // 关闭与 DeepSeek 的连接
+    })
+
+  } catch (error) {
+    console.error('调用 DeepSeek API 出错:', error.message)
+    // 向前端发送错误信息（也可用 SSE 格式发送错误事件）
+    res.write(`data: ${JSON.stringify({ error: 'AI 服务暂时不可用' })}\n\n`)
+    res.end()
+  }
 })
 
 app.listen(3000, () => {

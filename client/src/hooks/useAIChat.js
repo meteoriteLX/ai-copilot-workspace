@@ -57,10 +57,10 @@ export function useAIChat() {
             }
             try {
               const parsed = JSON.parse(data)
-              if (parsed.content) {
-                buffer += parsed.content
-                //触发节流更新
-                throttledUpdate()
+              if(parsed.choices && parsed.choices[0]?.delta?.content){
+                const token = parsed.choices[0].delta.content;
+                buffer += token;
+                throttledUpdate();
               }
             } catch (e) {
               console.error('解析失败', e)

@@ -33,7 +33,7 @@
       </div>
       <div class="ai-actions">
         <button v-if="isReceiving" @click="stopAI">停止生成</button>
-        <button v-else @click="fetchAI">生成建议</button>
+        <button v-else @click="handleGenerateSuggestion">生成建议</button>
       </div>
     </div>
 
@@ -143,6 +143,13 @@ const handleRealHeightUpdated = () => {
   }
 };
 
+//请求AI生成
+const handleGenerateSuggestion = () => {
+  const lastCustomerMsg = messageList.value.filter(msg => msg.role === 'customer').pop()?.content;
+  if(lastCustomerMsg) fetchAI(lastCustomerMsg);
+  else alert('没有客户消息，无法生成建议');
+}
+
 </script>
 
 
@@ -234,6 +241,12 @@ const handleRealHeightUpdated = () => {
   overflow-y: auto;
   /* 当内容超出元素的高度时，自动显示垂直滚动条；如果内容没有超出，则不显示滚动条 */
   min-height: 100px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ai-content{
+  flex: 1;
 }
 
 .ai-actions button{
