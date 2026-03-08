@@ -36,7 +36,11 @@ const positions = ref([]);
 
 //存储可视区域的每一项的DOM元素引用
 const itemRefs = ref([]);
+
+const emit = defineEmits(['scroll','real-height-updated']);
+
 const setItemRef = (el,index) =>{
+  console.log("setItemRef")
   if(el) itemRefs.value[index] = el;
 }
 
@@ -56,11 +60,18 @@ const updatePositions = () => {
 }
 
 //测量真实高度并更新位置
-const recalcPositions = async () => {
+const recalcPositions = async (retryCount = 0, maxRetries = 2) => {
   await nextTick(); //等待DOM更新完成
 
   const itemsElement = itemRefs.value;
-  if(!itemsElement.length) return;
+  if (!itemsElement.length) {
+    // 如果还没有元素，延迟重试（每次增加间隔）
+    if (retryCount < maxRetries) {
+      setTimeout(() => recalcPositions(retryCount + 1, maxRetries), 50);
+    }
+    return;
+  }
+  console.log("我是真实高度计算，触发了，itemRef不为空")
 
   //浅拷贝一份positons用于更新
   let updatedPositions = [...positions.value];
@@ -90,6 +101,9 @@ const recalcPositions = async () => {
 
   //重新计算可见范围，以修正偏移
   calcVisibleRange();
+
+  // 发射事件，通知父组件真实高度已更新
+  emit('real-height-updated');
 
 }
 
@@ -124,16 +138,17 @@ const calcVisibleRange = () => {
   startIndex.value = startIdx;
   endIndex.value = endIdx;
   visibleItems.value = props.items.slice(startIdx, endIdx + 1);//注意是左闭右开，这样正好取到endIdx
+  console.log("我是visibleItems的更新，触发了")
 
   //计算内容区域的偏移量，也就是将第一个渲染项移动到容器顶部所需偏移
   offsetY.value = positions.value[startIdx]?.top || 0;
 }
 
-const emit = defineEmits(['scroll']);
+
 //处理滚动事件
 const onScroll = (e) => {
   calcVisibleRange();
-  emit('scroll', e); 
+  emit('scroll', e); //好像没用啊
 }
 
 //监听items数据变化，并重新初始化positons

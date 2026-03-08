@@ -5,7 +5,6 @@ export function useAIChat() {
   //新增状态：用于中断请求的AbortController
   const abortController = ref(null)
   
-  
   //用于节流的缓冲区
   let buffer = ''
   

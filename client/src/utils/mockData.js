@@ -15,7 +15,7 @@ export function generateMockChatHistory(count = 1000) {
     list.push({
       id: `msg_${i}`,
       role: roles[Math.floor(Math.random() * roles.length)],
-      content: contents[Math.floor(Math.random() * contents.length)] + ` (这是第${i}条消息)`,
+      content: contents[Math.floor(Math.random() * contents.length)] + ` (这是第${i+1}条消息)`,
       time: new Date().toLocaleTimeString(),
     })
   }

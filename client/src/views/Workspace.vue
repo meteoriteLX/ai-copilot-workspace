@@ -4,7 +4,7 @@
     <div class="chat-box">
       <!-- 聊天框 -->
       <div class="chat-area">
-        <VirtualList ref="messageListRef" :items="messageList" :item-height="70" :buffer="5" class="message-list" @scroll="handleScroll"> 
+        <VirtualList ref="messageListRef" :items="messageList" :item-height="70" :buffer="5" class="message-list" @scroll="handleScroll" @real-height-updated="handleRealHeightUpdated"> 
           <!-- class="message-list会传给VirtualList的根元素，最外的那个div" -->
           <template #default="{ item1 }">
             <!-- #default 是默认插槽的名称，="{ item1 }" 是解构赋值，从插槽参数对象中提取 item1 属性。 -->
@@ -57,6 +57,9 @@ const { aiSuggestion,isReceiving,fetchAI,stopAI } = useAIChat();
 
 const userIsScrolling = ref(false);
 
+const isInitialLoad = ref(true);
+
+
 onMounted(()=>{
   //message是异步获取的，所以用onMounted保证了组件被挂载到DOM，已经渲染到页面上，再发起请求并处理响应。
   messageList.value = generateMockChatHistory(10000);
@@ -105,6 +108,7 @@ if(draft) inputText.value = draft;
 const scrollToBottom = () => {
   const el = messageListRef.value?.$el; //$el为根DOM属性
   if(el) {
+    console.log(el.scrollTop,'  ',el.scrollHeight)
     el.scrollTop = el.scrollHeight;
     //scrollTop：元素当前滚动的距离（顶部被卷去的高度）。
     //scrollHeight：元素内容的总高度（包括不可见的部分）。
@@ -131,6 +135,13 @@ watch(messageList, async () => {
 //watch 监听 messageList：当列表变化（比如用户发送新消息或 AI 回复）时触发。
 //await nextTick()：等待 Vue 完成 DOM 更新。因为新消息添加到数组后，浏览器需要渲染出新元素，此时 scrollHeight 才准确。
 
+
+const handleRealHeightUpdated = () => {
+  if (isInitialLoad.value) {
+    scrollToBottom();
+    isInitialLoad.value = false;
+  }
+};
 
 </script>
 
