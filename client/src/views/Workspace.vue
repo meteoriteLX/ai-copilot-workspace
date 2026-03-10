@@ -54,7 +54,7 @@ const inputText = ref('');
 
 const messageListRef = ref(null);
 
-const { aiSuggestion,isReceiving,fetchAI,stopAI } = useAIChat();
+const { aiSuggestion,isReceiving,fetchAI,stopAI } = useAIChat(); //其函数返回的
 
 const userIsScrolling = ref(false);
 

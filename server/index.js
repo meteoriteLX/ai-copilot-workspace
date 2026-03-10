@@ -1,20 +1,20 @@
-require('dotenv').config()
+require('dotenv').config() //加载项目根目录下的 .env 文件，将其中定义的环境变量注入到 process.env 中。
 const express = require('express')
 const axios = require('axios')
-const cors = require('cors')
+const cors = require('cors') //引入 Express 框架、Axios（用于发送 HTTP 请求）和 CORS 中间件。
 
-const app = express()
-app.use(cors())
-app.use(express.json())
+const app = express() //创建一个 Express 应用实例。
+app.use(cors()) //使用 CORS 中间件，允许所有跨域请求（默认配置）。这样前端可以从不同源访问该后端。
+app.use(express.json()) //使用 Express 内置的 JSON 解析中间件，使 req.body 能够正确解析 JSON 格式的请求体。
 
-app.post('/api/chat', async (req, res) => {
-  const { prompt } = req.body
-  console.log('收到请求，prompt:', prompt)
+app.post('/api/chat', async (req, res) => { //定义一个 POST 路由，路径为 /api/chat
+  const { prompt } = req.body  //从请求体对象中解构出 prompt 字段
+  console.log('收到请求，prompt:', prompt) 
 
   // 设置 SSE 响应头
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.setHeader('Connection', 'keep-alive')
+  res.setHeader('Content-Type', 'text/event-stream') //表明这是一个事件流。
+  res.setHeader('Cache-Control', 'no-cache') //禁止缓存。
+  res.setHeader('Connection', 'keep-alive') //保持长连接。
 
   try {
     // 调用 DeepSeek API（流式）
@@ -33,11 +33,12 @@ app.post('/api/chat', async (req, res) => {
         ],
         stream: true, // 启用流式输出
       },
-      responseType: 'stream' // 关键：告诉 axios 返回流
+      responseType: 'stream' // 关键：告诉 axios 返回流。这样 Axios 会将响应数据作为可读流返回（而不是自动解析为 JSON）。
     })
 
-    // 将 DeepSeek 返回的流 pipe 到前端的 SSE 响应中
+    // 将 DeepSeek 返回的流用pipe方法直接连接到前端的响应对象 res 上
     // DeepSeek 流式响应的格式是 data: {...}\n\n，和我们之前模拟的格式一致，可以直接透传
+    //这样 DeepSeek 返回的 SSE 数据块会原封不动地转发给前端，无需额外处理
     response.data.pipe(res)
 
     // 监听前端中断
@@ -54,6 +55,7 @@ app.post('/api/chat', async (req, res) => {
   }
 })
 
+//启动 Express 服务器，监听 3000 端口，启动成功后打印提示信息。
 app.listen(3000, () => {
   console.log('后端服务运行在 http://localhost:3000')
 })
