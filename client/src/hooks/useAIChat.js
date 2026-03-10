@@ -6,7 +6,8 @@ export function useAIChat() {
   const abortController = ref(null)
   
   //用于节流的缓冲区
-  let buffer = ''
+  // let buffer = ''
+  let buffer = [];
   
   //节流。控制aiSuggestion的更新频率
   const throttledUpdate = (() => {
@@ -15,7 +16,7 @@ export function useAIChat() {
       if(!valid) return false;
       valid = false;
       setTimeout(()=>{
-        aiSuggestion.value = buffer;
+        aiSuggestion.value = buffer.join('');
         valid = true;
       },50)
     }
@@ -29,7 +30,7 @@ export function useAIChat() {
     abortController.value = new AbortController()
     isReceiving.value = true
     aiSuggestion.value = ''
-    buffer = ''
+    buffer = [];
 
     try {
       const response = await fetch('http://localhost:3000/api/chat', {
@@ -59,7 +60,7 @@ export function useAIChat() {
               const parsed = JSON.parse(data) //尝试将数据解析为JS对象parsed
               if(parsed.choices && parsed.choices[0]?.delta?.content){ //检查解析后的对象是否符合OpenAI流式响应的格式：存在 choices 数组，且第一个元素的 delta 对象中包含 content 属性。
                 const token = parsed.choices[0].delta.content; //如果存在，则取出增量内容token
-                buffer += token;
+                buffer.push(token);
                 throttledUpdate();
                 // aiSuggestion.value += token;
               }
