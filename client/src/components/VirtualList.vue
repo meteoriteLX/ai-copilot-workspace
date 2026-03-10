@@ -44,6 +44,7 @@ const setItemRef = (el,index) =>{
   if(el) itemRefs.value[index] = el;
 }
 
+/*没用
 //更新positions数组（初始化或重置）先假设每个项高度固定：
 const updatePositions = () => {
   positions.value = props.items.map((item,index) => {
@@ -57,7 +58,7 @@ const updatePositions = () => {
   totalHeight.value = positions.value[positions.value.length - 1]?.bottom || 0;
   // positions.value[positions.value.length - 1]：取最后一个项的位置信息对象。
   // ?.bottom：如果数组不为空，就取其bottom值，即最后一项的底部偏移。由于最后一项的底部就是整个列表的底部，所以这个值就是所有项的总高度。
-}
+} */
 
 //测量真实高度并更新位置
 const recalcPositions = async (retryCount = 0, maxRetries = 2) => {
@@ -65,7 +66,7 @@ const recalcPositions = async (retryCount = 0, maxRetries = 2) => {
 
   const itemsElement = itemRefs.value;
   if (!itemsElement.length) {
-    // 如果还没有元素，延迟重试（每次增加间隔）
+    //如果还没有元素，延迟重试（每次增加间隔）
     if (retryCount < maxRetries) {
       setTimeout(() => recalcPositions(retryCount + 1, maxRetries), 50);
     }
@@ -148,18 +149,21 @@ const calcVisibleRange = () => {
 //处理滚动事件
 const onScroll = (e) => {
   calcVisibleRange();
-  emit('scroll', e); //好像没用啊
+  emit('scroll', e); //这个好像没用啊
 }
 
 //监听items数据变化，并重新初始化positons
 watch(() => props.items, async () => {
+  //更新positions数组（初始化或重置）先假设每个项高度固定：
   positions.value = props.items.map((item,index) => ({
     index: index,
     height: props.itemHeight,
-    top: index * props.itemHeight, 
-    bottom:(index + 1) * props.itemHeight 
+    top: index * props.itemHeight, //当前项顶部距离滚动容器顶部的偏移量
+    bottom:(index + 1) * props.itemHeight  //前项底部距离滚动容器顶部的偏移量
   }))//返回对象时用括号可以省略return
   totalHeight.value = positions.value[positions.value.length-1]?.bottom || 0;
+   // positions.value[positions.value.length - 1]：取最后一个项的位置信息对象。
+  // ?.bottom：如果数组不为空，就取其bottom值，即最后一项的底部偏移。由于最后一项的底部就是整个列表的底部，所以这个值就是所有项的总高度。
 
   await nextTick();
   recalcPositions();

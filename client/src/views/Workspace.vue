@@ -34,6 +34,7 @@
       <div class="ai-actions">
         <button v-if="isReceiving" @click="stopAI">停止生成</button>
         <button v-else @click="handleGenerateSuggestion">生成建议</button>
+        <button @click="getSuggestion">采纳建议</button>
       </div>
     </div>
 
@@ -106,7 +107,7 @@ if(draft) inputText.value = draft;
 
 //滚动到底部
 const scrollToBottom = () => {
-  const el = messageListRef.value?.$el; //$el为根DOM属性
+  const el = messageListRef.value?.$el; //$el为根DOM
   if(el) {
     console.log(el.scrollTop,'  ',el.scrollHeight)
     el.scrollTop = el.scrollHeight;
@@ -123,7 +124,7 @@ const handleScroll = () => {
   const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 50;
   //clientHeight：元素可视区域的高度。
   //scrollHeight - scrollTop - clientHeight 计算当前底部还有多少未滚动的内容。
-  //如果这个差值小于50像素，就认为用户已经接近底部（atBottom = true）。
+  //如果这个差值小于50像素，就认为用户已经接近底部（atBottom = true）。用户没有在滚动
   userIsScrolling.value = !atBottom;
 }
 
@@ -148,6 +149,14 @@ const handleGenerateSuggestion = () => {
   const lastCustomerMsg = messageList.value.filter(msg => msg.role === 'customer').pop()?.content;
   if(lastCustomerMsg) fetchAI(lastCustomerMsg);
   else alert('没有客户消息，无法生成建议');
+}
+
+//将AI生成的建议填入输入框
+const getSuggestion = ()=> {
+  if(inputText.value) inputText.value = '';
+  localStorage.removeItem('chat_draft');
+  inputText.value = aiSuggestion.value;
+  localStorage.setItem('chat_draft',inputText.value);
 }
 
 </script>
