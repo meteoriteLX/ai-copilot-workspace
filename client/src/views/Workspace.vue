@@ -4,15 +4,22 @@
     <div class="chat-box">
       <!-- 聊天框 -->
       <div class="chat-area">
-        <VirtualList ref="messageListRef" :items="messageList" :item-height="70" :buffer="5" class="message-list" @scroll="handleScroll" @real-height-updated="handleRealHeightUpdated"> 
-          <!-- class="message-list会传给VirtualList的根元素，最外的那个div" -->
-          <template #default="{ item1 }">
-            <!-- #default 是默认插槽的名称，="{ item1 }" 是解构赋值，从插槽参数对象中提取 item1 属性。 -->
-            <div :class="['bubble',item1.role]">
-              {{ item1.content }}
-            </div>
-          </template>
-        </VirtualList>
+          <VirtualList ref="messageListRef" :items="messageList" :item-height="70" :buffer="5" class="message-list" @scroll="handleScroll" @real-height-updated="handleRealHeightUpdated"> 
+            <!-- class="message-list会传给VirtualList的根元素，最外的那个div" -->
+            <template #default="{ item1 }">
+              <!-- #default 是默认插槽的名称，="{ item1 }" 是解构赋值，从插槽参数对象中提取 item1 属性。 -->
+              <div :class="['bubble',item1.role]">
+                {{ item1.content }}
+              </div>
+            </template>
+          </VirtualList>
+     
+        
+        <!-- <div class="message-list" ref="messageListRef">
+          <div v-for="item in messageList" :key="item.id" :class="['bubble',item.role]">
+            {{ item.content }}
+          </div>
+        </div> -->
       </div>
 
       <!-- 底部输入框 -->
@@ -32,9 +39,11 @@
         {{ aiSuggestion }}
       </div>
       <div class="ai-actions">
+        当前渲染的DOM节点数量{{ bubblenum }}
         <button v-if="isReceiving" @click="stopAI">停止生成</button>
         <button v-else @click="handleGenerateSuggestion">生成建议</button>
         <button @click="getSuggestion">采纳建议</button>
+        
       </div>
     </div>
 
@@ -44,7 +53,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick, watch, onMounted } from 'vue';
+import { ref, nextTick, watch, onMounted, computed } from 'vue';
 import { useAIChat } from '../hooks/useAIChat'
 import VirtualList from '../components/VirtualList.vue'
 import { generateMockChatHistory } from '../utils/mockData'
@@ -60,10 +69,17 @@ const userIsScrolling = ref(false);
 
 const isInitialLoad = ref(true);
 
+const bubblenum = ref(0);
+
+// watch(messageList,async ()=>{
+//   await nextTick();
+//   bubblenum.value = document.querySelectorAll('.bubble').length;
+// })
+
 
 onMounted(()=>{
   //message是异步获取的，所以用onMounted保证了组件被挂载到DOM，已经渲染到页面上，再发起请求并处理响应。
-  messageList.value = generateMockChatHistory(10000);
+  messageList.value = generateMockChatHistory(50000);
 })
 
 
@@ -126,6 +142,7 @@ const handleScroll = () => {
   //scrollHeight - scrollTop - clientHeight 计算当前底部还有多少未滚动的内容。
   //如果这个差值小于50像素，就认为用户已经接近底部（atBottom = true）。用户没有在滚动
   userIsScrolling.value = !atBottom;
+  bubblenum.value = document.querySelectorAll('.bubble').length; //显示渲染的DOM节点数量
 }
 
 //监听消息列表变化，自动滚动（如果用户不在手动滚动状态）

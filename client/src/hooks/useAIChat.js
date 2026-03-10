@@ -61,6 +61,7 @@ export function useAIChat() {
                 const token = parsed.choices[0].delta.content; //如果存在，则取出增量内容token
                 buffer += token;
                 throttledUpdate();
+                // aiSuggestion.value += token;
               }
             } catch (e) {
               console.error('解析失败', e)
