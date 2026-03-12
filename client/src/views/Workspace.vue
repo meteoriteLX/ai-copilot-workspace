@@ -164,8 +164,16 @@ const handleRealHeightUpdated = () => {
 //请求AI生成
 const handleGenerateSuggestion = () => {
   const lastCustomerMsg = messageList.value.filter(msg => msg.role === 'customer').pop()?.content;
-  if(lastCustomerMsg) fetchAI(lastCustomerMsg);
-  else alert('没有客户消息，无法生成建议');
+  if(!lastCustomerMsg){
+    alert("无消息");
+    return;
+  }
+  //20条作为上下文
+  let historyLength = 20;
+  if(messageList.value.length < 20) historyLength = messageList.value.length;
+  const history = messageList.value.slice(messageList.value.length - historyLength , messageList.value.length);
+  history.shift(lastCustomerMsg);
+  fetchAI(history);
 }
 
 //将AI生成的建议填入输入框

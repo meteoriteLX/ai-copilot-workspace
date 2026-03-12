@@ -103,7 +103,7 @@ const recalcPositions = async (retryCount = 0, maxRetries = 2) => {
   //重新计算可见范围，以修正偏移
   calcVisibleRange();
 
-  // 发射事件，通知父组件真实高度已更新
+  //发射事件，通知父组件真实高度已更新
   emit('real-height-updated');
 
 }
@@ -149,7 +149,7 @@ const calcVisibleRange = () => {
 //处理滚动事件
 const onScroll = (e) => {
   calcVisibleRange();
-  emit('scroll', e); //这个好像没用啊
+  emit('scroll', e); //这个好像没用
 }
 
 //监听items数据变化，并重新初始化positons

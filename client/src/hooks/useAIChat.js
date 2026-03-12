@@ -22,7 +22,7 @@ export function useAIChat() {
     }
   })(); //立即执行
 
-  const fetchAI = async (prompt = '') => {
+  const fetchAI = async (messages = []) => {
     if (abortController.value) {
       abortController.value.abort()
     }
@@ -36,7 +36,7 @@ export function useAIChat() {
       const response = await fetch('http://localhost:3000/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: prompt || '默认问题' }),
+        body: JSON.stringify({ messages:messages || '默认问题' }),
         signal: abortController.value.signal, //将 abortController.value.signal 作为signal参数传入，使得后续可以通过abort()中断该请求。
       })
 
